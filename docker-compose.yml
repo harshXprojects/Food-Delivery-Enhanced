@@ -1,0 +1,153 @@
+version: '3.8'
+
+services:
+  frontend:
+    container_name: tomato-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETUID      # ← add this
+      - SETGID      # ← add this
+      - CHOWN       # ← add this
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  admin:
+    container_name: tomato-admin
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    ports:
+      - "5174:80"
+    depends_on:
+      - backend
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETUID
+      - SETGID
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  restaurant:
+    container_name: tomato-restaurant
+    build:
+      context: ./restaurant
+      dockerfile: Dockerfile
+    ports:
+      - "5175:80"
+    depends_on:
+      - backend
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETUID
+      - SETGID
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  delivery:
+    container_name: tomato-delivery
+    build:
+      context: ./delivery
+      dockerfile: Dockerfile
+    ports:
+      - "5176:80"
+    depends_on:
+      - backend
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETUID
+      - SETGID
+      - CHOWN
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  backend:
+    container_name: tomato-backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./backend/.env
+    environment:
+      - MONGO_URL=mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-password}@mongodb:27017/${MONGO_DB:-tomato}?authSource=admin
+      - NODE_ENV=production
+    depends_on:
+      - mongodb
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    user: "1001:1001"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  mongodb:
+    container_name: tomato-mongodb
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27018:27017"
+    expose:
+      - "27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: ${MONGO_DB:-tomato}
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+    networks:
+      - app-network
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local
+
+networks:
+  app-network:
+    driver: bridge

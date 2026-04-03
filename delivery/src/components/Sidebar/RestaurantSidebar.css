@@ -1,0 +1,23 @@
+.restaurant-sidebar {
+  width: 200px;
+  min-height: calc(100vh - 60px);
+  background: #fff;
+  border-right: 1px solid #f0f0f0;
+  padding: 20px 0;
+}
+.sidebar-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  cursor: pointer;
+  text-decoration: none;
+  color: #555;
+  font-size: 15px;
+  transition: background 0.2s;
+}
+.sidebar-option:hover, .sidebar-option.active {
+  background: #fff4f0;
+  color: #ff6b35;
+  border-left: 3px solid #ff6b35;
+}

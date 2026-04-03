@@ -1,0 +1,27 @@
+.restaurant-navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 30px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.restaurant-navbar-logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ff6b35;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logout-btn {
+  padding: 8px 20px;
+  background: #ff6b35;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+.logout-btn:hover { opacity: 0.85; }

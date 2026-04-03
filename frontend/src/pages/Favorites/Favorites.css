@@ -1,0 +1,23 @@
+.favorites {
+  margin: 50px 0;
+}
+.favorites h2 {
+  font-size: 26px;
+  margin-bottom: 24px;
+}
+.favorites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+}
+.favorites-empty {
+  text-align: center;
+  padding: 60px 20px;
+  color: #888;
+}
+.favorites-empty p:first-child {
+  font-size: 20px;
+  font-weight: 500;
+  margin-bottom: 8px;
+  color: #555;
+}
