@@ -1,0 +1,108 @@
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: food-delivery-ingress
+  namespace: food-delivery
+  annotations:
+    # Use NGINX ingress controller
+    kubernetes.io/ingress.class: "nginx"
+
+    # Rewrite /api/... calls so the backend receives the path correctly
+    nginx.ingress.kubernetes.io/use-regex: "true"
+
+    # Allow large uploads (food images)
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+
+    # Timeouts (important for slow cold-starts)
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "60"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+
+    # CORS — allow all frontends to call the API
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "http://food.local,http://admin.food.local,http://restaurant.food.local,http://delivery.food.local"
+    nginx.ingress.kubernetes.io/cors-allow-methods: "GET, POST, PUT, DELETE, OPTIONS"
+    nginx.ingress.kubernetes.io/cors-allow-headers: "DNT,X-CustomHeader,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization,token"
+
+spec:
+  ingressClassName: nginx
+  rules:
+
+    # ── Customer App ────────────────────────────────────────────────────────
+    - host: food.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+
+    # ── Admin Panel ─────────────────────────────────────────────────────────
+    - host: admin.food.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: admin
+                port:
+                  number: 80
+
+    # ── Restaurant Portal ───────────────────────────────────────────────────
+    - host: restaurant.food.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: restaurant
+                port:
+                  number: 80
+
+    # ── Delivery Portal ─────────────────────────────────────────────────────
+    - host: delivery.food.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: delivery
+                port:
+                  number: 80
+
+    # ── Backend API ─────────────────────────────────────────────────────────
+    - host: api.food.local
+      http:
+        paths:
+          # All API routes
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 4000
+          # Static uploaded images (food photos)
+          - path: /images
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 4000
+          # Health check
+          - path: /
+            pathType: Exact
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 4000

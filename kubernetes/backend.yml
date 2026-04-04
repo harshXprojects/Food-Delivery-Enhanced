@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: food-delivery
+  labels:
+    app: backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      initContainers:
+        - name: wait-for-mongodb
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting for MongoDB..."
+              until nc -z mongodb 27017; do sleep 2; done
+              echo "MongoDB is up!"
+      containers:
+        - name: backend
+          image: food-delivery-backend:v1.0.1
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 4000
+          env:
+            - name: PORT
+              value: "4000"
+            - name: NODE_ENV
+              value: "production"
+            - name: SALT
+              value: "10"
+            - name: MONGO_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-username
+            - name: MONGO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-password
+            - name: MONGO_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-database
+            - name: MONGO_URL
+              value: "mongodb://$(MONGO_ROOT_USERNAME):$(MONGO_ROOT_PASSWORD)@mongodb:27017/$(MONGO_DATABASE)?authSource=admin"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: jwt-secret
+            - name: STRIPE_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backend-secret
+                  key: stripe-secret-key
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "300m"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 4000
+            initialDelaySeconds: 20
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 4000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+---
+# ClusterIP — Ingress routes /api/* to this
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: food-delivery
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 4000
+      targetPort: 4000
+  type: ClusterIP
+---
+# MongoDB debug NodePort (kept for direct DB access)
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb-nodeport
+  namespace: food-delivery
+spec:
+  selector:
+    app: mongodb
+  ports:
+    - port: 27017
+      targetPort: 27017
+      nodePort: 30005
+  type: NodePort
