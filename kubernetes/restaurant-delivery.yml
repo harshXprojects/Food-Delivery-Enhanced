@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: restaurant
-          image: food-delivery-restaurant:latest
+          image: food-delivery-restaurant:v1.0.1
           imagePullPolicy: Never
           ports:
             - containerPort: 80
@@ -75,7 +75,7 @@ spec:
     spec:
       containers:
         - name: delivery
-          image: food-delivery-delivery:latest
+          image: food-delivery-delivery:v1.0.1
           imagePullPolicy: Never
           ports:
             - containerPort: 80
