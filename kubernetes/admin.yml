@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
         - name: admin
-          image: food-delivery-admin:v1.0.1
-          imagePullPolicy: Never
+          image: singhharshmeet/foodapp-admin:v1.0.1
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           resources:

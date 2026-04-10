@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
         - name: restaurant
-          image: food-delivery-restaurant:v1.0.1
-          imagePullPolicy: Never
+          image: singhharshmeet/foodapp-restaurant:v1.0.1
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           resources:
@@ -75,8 +75,8 @@ spec:
     spec:
       containers:
         - name: delivery
-          image: food-delivery-delivery:v1.0.1
-          imagePullPolicy: Never
+          image: singhharshmeet/foodapp-delivery:v1.0.1
+          imagePullPolicy: Always
           ports:
             - containerPort: 80
           resources:

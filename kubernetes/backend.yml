@@ -17,18 +17,30 @@ spec:
     spec:
       initContainers:
         - name: wait-for-mongodb
-          image: busybox:1.36
+          image: mongo:latest
+          env:
+            - name: MONGO_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-username
+            - name: MONGO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: mongo-root-password
           command:
             - sh
             - -c
             - |
               echo "Waiting for MongoDB..."
-              until nc -z mongodb 27017; do sleep 2; done
+              until mongosh "mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@mongodb:27017/admin" --eval "db.adminCommand('ping')" > /dev/null 2>&1; do sleep 2; done
               echo "MongoDB is up!"
+
       containers:
         - name: backend
-          image: food-delivery-backend:v1.0.1
-          imagePullPolicy: Never
+          image: singhharshmeet/foodapp-backend:v1.0.1
+          imagePullPolicy: Always
           ports:
             - containerPort: 4000
           env:
@@ -65,27 +77,22 @@ spec:
                 secretKeyRef:
                   name: backend-secret
                   key: stripe-secret-key
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "256Mi"
-              cpu: "300m"
+
           livenessProbe:
             httpGet:
               path: /
               port: 4000
             initialDelaySeconds: 20
             periodSeconds: 15
+
           readinessProbe:
             httpGet:
               path: /
               port: 4000
             initialDelaySeconds: 10
             periodSeconds: 10
+
 ---
-# ClusterIP — Ingress routes /api/* to this
 apiVersion: v1
 kind: Service
 metadata:
@@ -98,18 +105,3 @@ spec:
     - port: 4000
       targetPort: 4000
   type: ClusterIP
----
-# MongoDB debug NodePort (kept for direct DB access)
-apiVersion: v1
-kind: Service
-metadata:
-  name: mongodb-nodeport
-  namespace: food-delivery
-spec:
-  selector:
-    app: mongodb
-  ports:
-    - port: 27017
-      targetPort: 27017
-      nodePort: 30005
-  type: NodePort
