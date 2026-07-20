@@ -13,6 +13,7 @@ A full-stack MERN food delivery platform with **four separate portals**, role-ba
 - [Manual Local Setup (No Docker)](#manual-local-setup-no-docker)
 - [Kubernetes Deployment](#kubernetes-deployment)
 - [ArgoCD GitOps](#argocd-gitops)
+- [Monitoring & Observability](#monitoring--observability)
 - [API Reference](#api-reference)
 - [Environment Variables](#environment-variables)
 - [Tech Stack](#tech-stack)
@@ -102,6 +103,8 @@ Food-Delivery-Enhanced-fixed/
 │   ├── admin.yml
 │   ├── restaurant-delivery.yml
 │   ├── ingress.yml         # NGINX Ingress with host-based routing
+│   ├── monitoring-values.yml       # Helm values for kube-prometheus-stack (Grafana ingress, resource limits)
+│   ├── backend-servicemonitor.yml  # ServiceMonitor — tells Prometheus to scrape backend /metrics
 │   └── kind/
 │       └── kind-cluster.yml  # Local kind cluster config (1 control-plane + 2 workers)
 ├── ArgoCd/
@@ -264,6 +267,64 @@ ArgoCD will automatically deploy and keep the `food-delivery` namespace in sync 
 
 ---
 
+## Monitoring & Observability
+
+The cluster ships with a full Prometheus + Grafana observability stack, installed via the `kube-prometheus-stack` Helm chart, plus custom application-level metrics exposed directly from the backend.
+
+**Stack components**
+- **kube-prometheus-stack** (Prometheus, Grafana, Alertmanager, node-exporter, kube-state-metrics) — deployed with Helm using `kubernetes/monitoring-values.yml` for custom config (Grafana ingress host, Prometheus resource requests/limits)
+- **Custom backend metrics** — instrumented with `prom-client` in `backend/server.js`, exposing a `/metrics` endpoint (request counts, latency, and default Node.js process metrics) scraped by Prometheus
+- **ServiceMonitor** (`kubernetes/backend-servicemonitor.yml`) — tells the Prometheus Operator to discover and scrape the backend service's `/metrics` endpoint every 15s
+
+### Install the stack
+
+```bash
+kubectl create namespace monitoring
+
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+
+helm install kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+  -n monitoring \
+  -f kubernetes/monitoring-values.yml
+
+# Wire up scraping for the backend's custom /metrics endpoint
+kubectl apply -f kubernetes/backend-servicemonitor.yml
+```
+
+### Access Grafana / Prometheus
+
+```bash
+# Grafana — via ingress (add to /etc/hosts if using kind)
+# http://grafana.food.local
+
+# Or port-forward directly
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80
+kubectl port-forward -n monitoring svc/kube-prometheus-stack-prometheus 9090:9090
+```
+
+Default Grafana login: `admin` / `admin` (set in `monitoring-values.yml` — change this for anything beyond local use).
+
+### Screenshots
+
+**Node Exporter Full dashboard** — cluster-level CPU, memory, and disk usage for the control-plane node:
+
+![Node Exporter Full dashboard](./docs/screenshots/grafana-node-exporter.png)
+
+**`http_requests_total`** queried in Prometheus — custom counter metric from the backend, broken out by pod, route, and status code:
+
+![http_requests_total table view](./docs/screenshots/prometheus-http-requests-table.png)
+
+Graph view of the same metric over time, showing steady request growth across both backend pods:
+
+![http_requests_total graph view](./docs/screenshots/prometheus-http-requests-graph.png)
+
+Request rate by route using `sum(rate(http_requests_total[5m])) by (route)` — useful for spotting traffic shifts between endpoints (e.g. `/` vs `/metrics`):
+
+![Request rate by route](./docs/screenshots/prometheus-rate-by-route.png)
+
+---
+
 ## API Reference
 
 ### Public Endpoints
@@ -328,3 +389,4 @@ All authenticated requests require the JWT token in the `token` header.
 | Orchestration | Kubernetes (kind / EKS / GKE) |
 | Ingress | NGINX Ingress Controller |
 | GitOps / CD | ArgoCD |
+| Monitoring / Observability | Prometheus, Grafana, Alertmanager (kube-prometheus-stack), prom-client |
