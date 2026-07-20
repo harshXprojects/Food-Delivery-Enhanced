@@ -117,7 +117,7 @@ services:
       - NET_BIND_SERVICE
     security_opt:
       - no-new-privileges:true
-    user: "1001:1001"
+    
     tmpfs:
       - /tmp:rw,noexec,nosuid
     restart: unless-stopped

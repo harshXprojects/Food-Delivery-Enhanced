@@ -39,7 +39,7 @@ spec:
 
       containers:
         - name: backend
-          image: singhharshmeet/foodapp-backend:v1.0.1
+          image: singhharshmeet/foodapp-backend:v2
           imagePullPolicy: Always
           ports:
             - containerPort: 4000
@@ -98,10 +98,14 @@ kind: Service
 metadata:
   name: backend
   namespace: food-delivery
+  labels:
+    app: backend
 spec:
   selector:
     app: backend
   ports:
-    - port: 4000
+    - name: http
+      port: 4000
       targetPort: 4000
+      protocol: TCP
   type: ClusterIP

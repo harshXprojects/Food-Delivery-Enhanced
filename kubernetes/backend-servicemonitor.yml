@@ -1,0 +1,18 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: backend-servicemonitor
+  namespace: monitoring          # must live where Prometheus Operator watches
+  labels:
+    release: kube-prometheus-stack   # IMPORTANT — see explanation below
+spec:
+  selector:
+    matchLabels:
+      app: backend                # must match your backend Service's actual labels from Step 1
+  namespaceSelector:
+    matchNames:
+      - food-delivery
+  endpoints:
+    - port: http                 # the name of the port in your backend Service spec, not the number
+      path: /metrics
+      interval: 15s
